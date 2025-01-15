@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+import pdfplumber
 
 # Show title and description.
 st.title("💬 Chatbot")
@@ -24,11 +25,22 @@ else:
     # messages persist across reruns.
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    
+    # File uploader for PDF
+    uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
+    if uploaded_file:
+        # Extract text from the PDF
+        with pdfplumber.open(uploaded_file) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text()
+        st.session_state.pdf_text = text
 
     # Display the existing chat messages via `st.chat_message`.
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+
 
     # Create a chat input field to allow the user to enter a message. This will display
     # automatically at the bottom of the page.
@@ -40,6 +52,12 @@ else:
             st.markdown(prompt)
 
         # Generate a response using the OpenAI API.
+        messages = [
+            {"role": "system", "content": "You are an expert in summarizing PDF documents."},
+            {"role": "system", "content": f"Here is the content of the PDF: {st.session_state.pdf_text}"},
+            {"role": "user", "content": prompt}
+        ]
+
         stream = client.chat.completions.create(
             model="gpt-35-turbo",
             messages=[
