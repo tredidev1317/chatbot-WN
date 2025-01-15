@@ -33,8 +33,11 @@ else:
         with pdfplumber.open(uploaded_file) as pdf:
             text = ""
             for page in pdf.pages:
-                text += page.extract_text()
+                text += page.extract_text() or ""  # Ensure no NoneType error
         st.session_state.pdf_text = text
+        st.write("Extracted PDF Text:")
+        st.write(st.session_state.pdf_text)
+
 
     # Display the existing chat messages via `st.chat_message`.
     for message in st.session_state.messages:
@@ -58,17 +61,17 @@ else:
             {"role": "user", "content": prompt}
         ]
 
-        stream = client.chat.completions.create(
-            model="gpt-35-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
+    stream = client.chat.completions.create(
+        model="gpt-35-turbo",
+        messages=[
+        {"role": m["role"], "content": m["content"]}
+        for m in st.session_state.messages
+        ],
+        stream=True,
         )
 
         # Stream the response to the chat using `st.write_stream`, then store it in 
         # session state.
-        with st.chat_message("assistant"):
+    with st.chat_message("assistant"):
             response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append({"role": "assistant", "content": response})
